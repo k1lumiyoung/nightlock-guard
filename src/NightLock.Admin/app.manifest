@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="1.0.0.0" name="NightLock.Admin" />
+  <!--
+    @spec spec://modules/core/INFRA-001-windows-runtime-baseline#admin-app
+    Config lives in the ACL-hardened ProgramData directory where normal Users have read-only
+    access, so the panel must run elevated to save changes. The UAC prompt is also a useful
+    extra barrier against a child casually opening it.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>

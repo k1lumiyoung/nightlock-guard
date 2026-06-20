@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Core", "src\NightLock.Core\NightLock.Core.csproj", "{A7F42063-C253-4B87-BA81-3D59A7BA0C01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Service", "src\NightLock.Service\NightLock.Service.csproj", "{71E68F0A-24C2-47CC-9057-4C562AF4036A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Helper", "src\NightLock.Helper\NightLock.Helper.csproj", "{0C3E12CC-05D5-4035-8D21-C69197D5E674}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Cli", "src\NightLock.Cli\NightLock.Cli.csproj", "{8F47CB1C-B3B6-46E4-A76C-F10DAA325B17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Admin", "src\NightLock.Admin\NightLock.Admin.csproj", "{2D9B5F1A-3C4E-4A7B-9F2D-1E6C8B0A7D34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NightLock.Core.Tests", "tests\NightLock.Core.Tests\NightLock.Core.Tests.csproj", "{73C72E4B-64DD-410A-95A6-450B2E5C2E08}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A7F42063-C253-4B87-BA81-3D59A7BA0C01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7F42063-C253-4B87-BA81-3D59A7BA0C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7F42063-C253-4B87-BA81-3D59A7BA0C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7F42063-C253-4B87-BA81-3D59A7BA0C01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71E68F0A-24C2-47CC-9057-4C562AF4036A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71E68F0A-24C2-47CC-9057-4C562AF4036A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71E68F0A-24C2-47CC-9057-4C562AF4036A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71E68F0A-24C2-47CC-9057-4C562AF4036A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C3E12CC-05D5-4035-8D21-C69197D5E674}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C3E12CC-05D5-4035-8D21-C69197D5E674}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C3E12CC-05D5-4035-8D21-C69197D5E674}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C3E12CC-05D5-4035-8D21-C69197D5E674}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F47CB1C-B3B6-46E4-A76C-F10DAA325B17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F47CB1C-B3B6-46E4-A76C-F10DAA325B17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F47CB1C-B3B6-46E4-A76C-F10DAA325B17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F47CB1C-B3B6-46E4-A76C-F10DAA325B17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D9B5F1A-3C4E-4A7B-9F2D-1E6C8B0A7D34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D9B5F1A-3C4E-4A7B-9F2D-1E6C8B0A7D34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D9B5F1A-3C4E-4A7B-9F2D-1E6C8B0A7D34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D9B5F1A-3C4E-4A7B-9F2D-1E6C8B0A7D34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73C72E4B-64DD-410A-95A6-450B2E5C2E08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73C72E4B-64DD-410A-95A6-450B2E5C2E08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73C72E4B-64DD-410A-95A6-450B2E5C2E08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73C72E4B-64DD-410A-95A6-450B2E5C2E08}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

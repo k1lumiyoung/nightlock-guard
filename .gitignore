@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+publish/
+artifacts/
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local tooling / agent config (not for publishing)
+.claude/
+
+# Logs
+*.log
