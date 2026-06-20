@@ -1,12 +1,13 @@
 # NightLock Guard
 
-> A small, transparent Windows parental-control tool: it locks the computer overnight, and only a
-> parent password lets it back in before morning.
+> A small, transparent Windows parental-control tool: it locks the computer during the hours you
+> choose, and only a parent password lets it back in.
 
-Windows-only parental-control utility that, every night from **23:30 until 08:00**, shows a
-full-screen lock window so the computer cannot be used. A warning appears at **23:20**, and the
-only way past the lock is the **NightLock parent password**, which grants a temporary, configurable
-period of access before the lock returns.
+Windows-only parental-control utility that locks the computer during a daily time window **the
+parent picks in the settings panel** (a sensible default is provided, and you can change the start
+and end time, the password-unlock duration, and more). During that window it shows a full-screen
+lock with a warning shortly before; the only way past it is the **NightLock parent password**, which
+grants a temporary, configurable period of access before the lock returns.
 
 It is **best-effort, transparent** software for a parent's own family PC — not spyware. It does not
 monitor activity, log keystrokes, record the screen, or touch the Windows account password. See
