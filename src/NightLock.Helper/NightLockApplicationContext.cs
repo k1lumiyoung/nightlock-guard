@@ -27,6 +27,8 @@ internal sealed class NightLockApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _timer = new();
     private readonly LockOverlayForm _overlay;
     private readonly KeyboardHook _keyboardHook;
+    private readonly System.Windows.Forms.Timer _configReloadTimer = new();
+    private FileSystemWatcher? _configWatcher;
     private DateTimeOffset? _overrideUntil;
     private DateTimeOffset? _lastWarningStart;
     private bool _stopped;
@@ -58,6 +60,12 @@ internal sealed class NightLockApplicationContext : ApplicationContext
             _logger.Info);
         _keyboardHook.Install();
 
+        // Apply settings the moment the admin panel / CLI saves them, instead of waiting for
+        // the next timer tick or session event.
+        _configReloadTimer.Interval = 400;
+        _configReloadTimer.Tick += (_, _) => OnConfigReloadTick();
+        _configWatcher = TryCreateConfigWatcher();
+
         _timer.Tick += (_, _) => EvaluateAndSchedule();
         SystemEvents.SessionSwitch += OnSessionSwitch;
         _logger.Info("Helper started.");
@@ -72,6 +80,8 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         {
             _logger.Info("Helper exiting.");
             SystemEvents.SessionSwitch -= OnSessionSwitch;
+            _configWatcher?.Dispose();
+            _configReloadTimer.Dispose();
             _keyboardHook.Dispose();
             _timer.Dispose();
             _notifyIcon.Visible = false;
@@ -314,6 +324,56 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         var now = DateTimeOffset.Now;
         var state = NightLockPolicy.Evaluate(now, settings, ActiveOverride(now));
         MessageBox.Show(state.Message, "NightLock Guard", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    /// <summary>
+    /// Watches the machine-wide config so a save from the admin panel or CLI is applied within
+    /// a fraction of a second, not only on the next timer tick or session event.
+    ///
+    /// @spec spec://modules/core/FEAT-003-parent-admin-panel#persistence
+    /// </summary>
+    private FileSystemWatcher? TryCreateConfigWatcher()
+    {
+        try
+        {
+            var watcher = new FileSystemWatcher(_paths.DataDirectory, Path.GetFileName(_paths.ConfigPath))
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size
+            };
+            watcher.Changed += OnConfigFileChanged;
+            watcher.Created += OnConfigFileChanged;
+            watcher.EnableRaisingEvents = true;
+            _logger.Info("Watching config for live changes.");
+            return watcher;
+        }
+        catch (Exception ex)
+        {
+            _logger.Info($"Config live-watch unavailable; settings still apply on timer/session events: {ex.Message}");
+            return null;
+        }
+    }
+
+    private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+    {
+        // Watcher events arrive on a thread-pool thread; marshal to the UI thread and debounce,
+        // because an atomic save (temp file + replace) can raise several events for one save.
+        if (!_overlay.IsHandleCreated)
+        {
+            return;
+        }
+
+        _overlay.BeginInvoke(new Action(() =>
+        {
+            _configReloadTimer.Stop();
+            _configReloadTimer.Start();
+        }));
+    }
+
+    private void OnConfigReloadTick()
+    {
+        _configReloadTimer.Stop();
+        _logger.Info("Config change detected; applying immediately.");
+        EvaluateAndSchedule();
     }
 
     private void OnSessionSwitch(object? sender, SessionSwitchEventArgs e)

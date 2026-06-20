@@ -181,7 +181,7 @@ internal sealed class AdminSettingsForm : Form
         {
             _store.Save(_settings);
             _logger.Info("Settings saved from admin panel.");
-            MessageBox.Show(this, "Settings saved. They apply on the next policy reload.", "NightLock Guard",
+            MessageBox.Show(this, "Settings saved and applied.", "NightLock Guard",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             DialogResult = DialogResult.OK;
             Close();

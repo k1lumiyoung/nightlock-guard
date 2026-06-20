@@ -100,7 +100,7 @@ Config contains:
 - emergency stop hotkey combination (default `LeftShift+RightShift+6+7`), see `spec://modules/core/FEAT-004-emergency-stop-hotkey#hotkey-config`;
 - Windows key suppression toggle (default on), see `spec://modules/core/FEAT-005-windows-key-suppression#root`.
 
-Schedule, override, hotkey, and the Windows-key toggle are editable through the parent admin panel (`spec://modules/core/FEAT-003-parent-admin-panel#root`) and the CLI. Editing config requires admin rights or parent password per the ACL/auth rules below; the config file itself is not writable by normal users.
+Schedule, override, hotkey, and the Windows-key toggle are editable through the parent admin panel (`spec://modules/core/FEAT-003-parent-admin-panel#root`) and the CLI. Editing config requires admin rights or parent password per the ACL/auth rules below; the config file itself is not writable by normal users. The session helper watches the config file and re-evaluates policy immediately on change, so saved settings take effect within about a second rather than waiting for the next timer tick.
 
 Config must not contain:
 - plaintext parent password;
