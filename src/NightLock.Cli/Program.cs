@@ -36,6 +36,9 @@ internal static class Program
                 case "set-hotkey":
                     return SetHotkey(args, configStore, logger);
 
+                case "set-schedule":
+                    return SetSchedule(args, configStore, logger);
+
                 case "status":
                     return Status(configStore);
 
@@ -134,6 +137,31 @@ internal static class Program
         return 0;
     }
 
+    private static int SetSchedule(string[] args, ConfigStore configStore, FileLogger logger)
+    {
+        var startRaw = ReadOption(args, "--start");
+        var endRaw = ReadOption(args, "--end");
+        if (!TimeOnly.TryParse(startRaw, out var start) || !TimeOnly.TryParse(endRaw, out var end))
+        {
+            Console.Error.WriteLine("Missing or invalid --start / --end (use HH:mm).");
+            return 2;
+        }
+
+        if (start == end)
+        {
+            Console.Error.WriteLine("Lock start and end cannot be the same time.");
+            return 2;
+        }
+
+        var settings = configStore.LoadOrCreateDefault();
+        settings.LockWindowStart = start.ToString("HH:mm");
+        settings.LockWindowEnd = end.ToString("HH:mm");
+        configStore.Save(settings);
+        logger.Info($"Lock window set to {settings.LockWindowStart}-{settings.LockWindowEnd} from CLI.");
+        Console.WriteLine($"Lock window set to {settings.LockWindowStart}-{settings.LockWindowEnd}.");
+        return 0;
+    }
+
     private static int Status(ConfigStore configStore)
     {
         var settings = configStore.LoadOrCreateDefault();
@@ -178,6 +206,7 @@ internal static class Program
         Console.WriteLine("  set-override --minutes <1-240>");
         Console.WriteLine("  set-winkey --on | --off");
         Console.WriteLine("  set-hotkey --keys \"LShift+RShift+6+7\"");
+        Console.WriteLine("  set-schedule --start <HH:mm> --end <HH:mm>");
         Console.WriteLine("  status");
     }
 }

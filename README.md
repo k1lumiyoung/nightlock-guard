@@ -66,9 +66,22 @@ their own child's late-night use. It is deliberately transparent:
 
 Please don't use it to restrict another adult's computer without their knowledge.
 
-## Install on Windows (no dev tools required)
+## Install on Windows
 
-This must run on a **Windows** PC. Open PowerShell **as Administrator** in the project folder and run:
+### Easiest: the Setup.exe (recommended)
+
+Download **`NightLockGuard-Setup.exe`** from the [Releases](../../releases) page, double-click it, and
+follow the wizard: it asks for the **parent password** and the **lock schedule**, then installs
+everything (no PowerShell, no .NET SDK, no building from source). Requires administrator approval
+(UAC), like any installer.
+
+> Building the installer yourself: on a Windows machine with the .NET 8 SDK, run
+> `.\scripts\build-installer.ps1` — it publishes the apps and produces `dist\NightLockGuard-Setup.exe`
+> (installing Inno Setup via `winget` if needed).
+
+### From source (PowerShell)
+
+Alternatively, on a **Windows** PC open PowerShell **as Administrator** in the project folder and run:
 
 ```powershell
 .\scripts\install.ps1

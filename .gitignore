@@ -3,6 +3,8 @@ bin/
 obj/
 publish/
 artifacts/
+dist/
+installer/payload/
 
 # IDE / editor
 .vs/
