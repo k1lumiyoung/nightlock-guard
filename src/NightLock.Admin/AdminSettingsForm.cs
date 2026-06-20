@@ -5,7 +5,7 @@ namespace NightLock.Admin;
 /// <summary>
 /// Single-screen parent settings panel: lock schedule, override minutes, Windows-key
 /// suppression, the emergency stop hotkey, and the parent password. It writes the same
-/// machine-wide config the service and helper read; changes apply on the next reload.
+/// machine-wide config the service and helper read; the helper applies changes immediately.
 ///
 /// @spec spec://modules/core/FEAT-003-parent-admin-panel#editable-settings
 /// @spec spec://modules/core/FEAT-003-parent-admin-panel#persistence
@@ -21,8 +21,8 @@ internal sealed class AdminSettingsForm : Form
     private readonly TextBox _end = new();
     private readonly NumericUpDown _minutes = new();
     private readonly CheckBox _winKey = new();
-    private readonly TextBox _hotkey = new();
-    private readonly Label _hotkeyPreview = new();
+    private readonly TextBox _hotkeyDisplay = new();
+    private List<int> _capturedHotkey;
     private PasswordVerifier? _pendingPassword;
 
     public AdminSettingsForm(ConfigStore store, FileLogger logger)
@@ -30,13 +30,14 @@ internal sealed class AdminSettingsForm : Form
         _store = store;
         _logger = logger;
         _settings = store.LoadOrCreateDefault();
+        _capturedHotkey = _settings.StopHotkey.ToList();
 
         Text = "NightLock Guard — Parent Settings";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(440, 380);
+        ClientSize = new Size(440, 410);
 
         var labelFont = new Font("Segoe UI", 9.5F);
         int y = 18;
@@ -68,26 +69,28 @@ internal sealed class AdminSettingsForm : Form
         y += 38;
 
         AddLabel("Emergency stop hotkey", y, labelFont);
-        _hotkey.SetBounds(240, y - 4, 180, 26);
-        _hotkey.Text = Hotkey.ToTokenString(_settings.StopHotkey);
-        _hotkey.TextChanged += (_, _) => UpdateHotkeyPreview();
-        Controls.Add(_hotkey);
-        y += 30;
+        _hotkeyDisplay.SetBounds(240, y - 4, 180, 26);
+        _hotkeyDisplay.ReadOnly = true;
+        Controls.Add(_hotkeyDisplay);
+        y += 32;
 
-        _hotkeyPreview.ForeColor = Color.DimGray;
-        _hotkeyPreview.SetBounds(20, y, 400, 36);
-        Controls.Add(_hotkeyPreview);
-        y += 42;
+        var recordButton = new Button { Text = "Record keys…" };
+        recordButton.SetBounds(240, y, 180, 28);
+        recordButton.Click += (_, _) => RecordHotkey();
+        Controls.Add(recordButton);
+        y += 36;
 
         var help = new Label
         {
-            Text = "Tokens joined by \"+\": LShift, RShift, LCtrl, Ctrl, Alt, A-Z, 0-9, F1-F12.\nExample: LShift+RShift+6+7. Needs 2-6 keys, at least one non-modifier.",
+            Text = "Click \"Record keys…\", then press and hold the keys you want\n"
+                 + "(e.g. Left Shift + Right Shift + 6 + 7) and release them together.\n"
+                 + "2–6 keys, at least one non-modifier.",
             ForeColor = Color.DimGray,
             Font = new Font("Segoe UI", 8.5F)
         };
-        help.SetBounds(20, y, 400, 40);
+        help.SetBounds(20, y, 410, 48);
         Controls.Add(help);
-        y += 46;
+        y += 54;
 
         var changePassword = new Button { Text = "Change parent password…" };
         changePassword.SetBounds(20, y, 200, 30);
@@ -106,7 +109,7 @@ internal sealed class AdminSettingsForm : Form
         AcceptButton = save;
         CancelButton = cancel;
 
-        UpdateHotkeyPreview();
+        UpdateHotkeyDisplay();
     }
 
     private void AddLabel(string text, int top, Font font)
@@ -114,18 +117,18 @@ internal sealed class AdminSettingsForm : Form
         Controls.Add(new Label { Text = text, Font = font, Left = 20, Top = top, Width = 220, Height = 24 });
     }
 
-    private void UpdateHotkeyPreview()
+    private void UpdateHotkeyDisplay()
     {
-        var parsed = Hotkey.Parse(_hotkey.Text);
-        if (parsed is not null && Hotkey.IsValid(parsed))
+        _hotkeyDisplay.Text = Hotkey.Describe(_capturedHotkey);
+    }
+
+    private void RecordHotkey()
+    {
+        using var dialog = new HotkeyCaptureForm();
+        if (dialog.ShowDialog(this) == DialogResult.OK && dialog.Captured is not null)
         {
-            _hotkeyPreview.ForeColor = Color.DimGray;
-            _hotkeyPreview.Text = $"Reads as: {Hotkey.Describe(parsed)}";
-        }
-        else
-        {
-            _hotkeyPreview.ForeColor = Color.FromArgb(180, 0, 0);
-            _hotkeyPreview.Text = "Not a valid combo yet.";
+            _capturedHotkey = dialog.Captured.ToList();
+            UpdateHotkeyDisplay();
         }
     }
 
@@ -160,10 +163,9 @@ internal sealed class AdminSettingsForm : Form
             return;
         }
 
-        var hotkey = Hotkey.Parse(_hotkey.Text);
-        if (hotkey is null || !Hotkey.IsValid(hotkey))
+        if (!Hotkey.IsValid(_capturedHotkey))
         {
-            Warn("The emergency stop hotkey is not valid. See the examples below the field.");
+            Warn("The emergency stop hotkey is not valid. Click \"Record keys…\" and press 2–6 keys including at least one non-modifier.");
             return;
         }
 
@@ -171,7 +173,7 @@ internal sealed class AdminSettingsForm : Form
         _settings.LockWindowEnd = end.ToString("HH:mm");
         _settings.OverrideMinutes = (int)_minutes.Value;
         _settings.SuppressWindowsKey = _winKey.Checked;
-        _settings.StopHotkeyKeys = hotkey.ToList();
+        _settings.StopHotkeyKeys = _capturedHotkey.ToList();
         if (_pendingPassword is not null)
         {
             _settings.ParentPassword = _pendingPassword;

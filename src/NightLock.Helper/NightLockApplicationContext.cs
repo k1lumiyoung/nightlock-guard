@@ -340,8 +340,12 @@ internal sealed class NightLockApplicationContext : ApplicationContext
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size
             };
+            // The admin panel/CLI save atomically (temp file + File.Replace), which surfaces as a
+            // Renamed (and sometimes Deleted) rather than a plain Changed, so handle them all.
             watcher.Changed += OnConfigFileChanged;
             watcher.Created += OnConfigFileChanged;
+            watcher.Deleted += OnConfigFileChanged;
+            watcher.Renamed += OnConfigFileRenamed;
             watcher.EnableRaisingEvents = true;
             _logger.Info("Watching config for live changes.");
             return watcher;
@@ -353,7 +357,11 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         }
     }
 
-    private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+    private void OnConfigFileChanged(object sender, FileSystemEventArgs e) => QueueConfigReload();
+
+    private void OnConfigFileRenamed(object sender, RenamedEventArgs e) => QueueConfigReload();
+
+    private void QueueConfigReload()
     {
         // Watcher events arrive on a thread-pool thread; marshal to the UI thread and debounce,
         // because an atomic save (temp file + replace) can raise several events for one save.
