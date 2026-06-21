@@ -28,16 +28,27 @@ foreach ($proj in @("NightLock.Service", "NightLock.Helper", "NightLock.Cli", "N
     dotnet publish (Join-Path $root "src\$proj\$proj.csproj") @publishArgs
 }
 
-$iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-if (-not (Test-Path $iscc)) {
+function Find-Iscc {
+    # winget may install Inno Setup machine-wide or into the user profile, so check both.
+    $candidates = @(
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe",
+        (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe")
+    )
+    $hit = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($hit) { return $hit }
+    $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    return $null
+}
+
+$iscc = Find-Iscc
+if (-not $iscc) {
     Write-Host "Inno Setup not found. Installing via winget..."
     winget install --id JRSoftware.InnoSetup --accept-package-agreements --accept-source-agreements --silent
+    $iscc = Find-Iscc
 }
-if (-not (Test-Path $iscc)) {
-    $found = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-    if ($found) { $iscc = $found.Source }
-}
-if (-not (Test-Path $iscc)) {
+if (-not $iscc) {
     throw "Inno Setup (ISCC.exe) not found. Install it from https://jrsoftware.org/isdl.php and re-run."
 }
 
