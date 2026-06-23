@@ -39,18 +39,29 @@ icacls $DataDir /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" "*S-1-5
 icacls (Join-Path $DataDir "logs") /grant:r "*S-1-5-32-545:(OI)(CI)M" 2>&1 | Out-Null
 $ErrorActionPreference = $prevEap
 
-# Background service.
+# Background service. Make a re-install over a running copy safe: stop everything that could
+# hold the old service, then wait for the SCM to actually remove it before recreating.
+Get-Process NightLock.Helper, NightLock.Admin, NightLock.Service -ErrorAction SilentlyContinue |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+
 $serviceName = "NightLockGuard"
 $serviceExe = Join-Path $InstallDir "NightLock.Service.exe"
 if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
     Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
     sc.exe delete $serviceName | Out-Null
-    Start-Sleep -Seconds 2
+    # A delete can stay "pending" while handles close; wait until the service is really gone.
+    for ($i = 0; $i -lt 30; $i++) {
+        if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) { break }
+        Start-Sleep -Milliseconds 500
+    }
 }
 sc.exe create $serviceName binPath= "`"$serviceExe`"" start= auto DisplayName= "NightLock Guard" | Out-Null
 sc.exe description $serviceName "Applies the NightLock Guard night lock policy and supervises the session helper." | Out-Null
 sc.exe failure $serviceName reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
-Start-Service -Name $serviceName
+Start-Sleep -Milliseconds 500
+# Don't fail the whole install if the service is briefly busy; the failure-actions retry it, and
+# the lock helper is started by the logon task below regardless.
+Start-Service -Name $serviceName -ErrorAction SilentlyContinue
 
 # Logon task that runs the helper inside each interactive user's session.
 $taskName = "NightLockGuardHelper"

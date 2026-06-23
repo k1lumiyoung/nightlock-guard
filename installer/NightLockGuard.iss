@@ -68,7 +68,7 @@ begin
   SchedPage.Add('Lock starts at (HH:mm):', False);
   SchedPage.Add('Lock ends at (HH:mm):', False);
   SchedPage.Add('Password-unlock minutes (1-240):', False);
-  SchedPage.Values[0] := '23:30';
+  SchedPage.Values[0] := '23:00';
   SchedPage.Values[1] := '08:00';
   SchedPage.Values[2] := '30';
 end;
@@ -113,6 +113,21 @@ begin
       end;
     end;
   end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  // Stop a previous install before overwriting its files, so the service can be recreated
+  // cleanly and no running .exe is locked during the copy.
+  Exec('powershell.exe',
+    '-ExecutionPolicy Bypass -NoProfile -Command "' +
+    'sc.exe stop NightLockGuard; ' +
+    'schtasks /end /tn NightLockGuardHelper; ' +
+    'Get-Process NightLock.Helper,NightLock.Admin,NightLock.Service -ErrorAction SilentlyContinue | Stop-Process -Force"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := '';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

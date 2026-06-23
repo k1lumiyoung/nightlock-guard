@@ -10,7 +10,7 @@ namespace NightLock.Core;
 /// </summary>
 public sealed class NightLockSettings
 {
-    public string LockWindowStart { get; set; } = "23:30";
+    public string LockWindowStart { get; set; } = "23:00";
     public string LockWindowEnd { get; set; } = "08:00";
     public int WarningOffsetMinutes { get; set; } = 10;
     public int OverrideMinutes { get; set; } = 30;
@@ -23,7 +23,7 @@ public sealed class NightLockSettings
     public List<int> StopHotkeyKeys { get; set; } = Hotkey.DefaultKeys.ToList();
 
     [JsonIgnore]
-    public TimeOnly LockStart => ParseTimeOrDefault(LockWindowStart, new TimeOnly(23, 30));
+    public TimeOnly LockStart => ParseTimeOrDefault(LockWindowStart, new TimeOnly(23, 0));
 
     [JsonIgnore]
     public TimeOnly LockEnd => ParseTimeOrDefault(LockWindowEnd, new TimeOnly(8, 0));

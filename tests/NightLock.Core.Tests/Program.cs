@@ -16,9 +16,9 @@ internal static class Program
     {
         var settings = new NightLockSettings();
 
-        AssertPhase(Local(2026, 06, 18, 23, 19), settings, LockPhase.Unrestricted);
-        AssertPhase(Local(2026, 06, 18, 23, 20), settings, LockPhase.Warning);
-        AssertPhase(Local(2026, 06, 18, 23, 30), settings, LockPhase.Restricted);
+        AssertPhase(Local(2026, 06, 18, 22, 49), settings, LockPhase.Unrestricted);
+        AssertPhase(Local(2026, 06, 18, 22, 50), settings, LockPhase.Warning);
+        AssertPhase(Local(2026, 06, 18, 23, 00), settings, LockPhase.Restricted);
         AssertPhase(Local(2026, 06, 19, 07, 59), settings, LockPhase.Restricted);
         AssertPhase(Local(2026, 06, 19, 08, 00), settings, LockPhase.Unrestricted);
 
