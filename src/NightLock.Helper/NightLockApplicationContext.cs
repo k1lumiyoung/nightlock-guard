@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using NightLock.Core;
 
@@ -28,6 +30,7 @@ internal sealed class NightLockApplicationContext : ApplicationContext
     private readonly LockOverlayForm _overlay;
     private readonly KeyboardHook _keyboardHook;
     private readonly System.Windows.Forms.Timer _configReloadTimer = new();
+    private readonly Icon _moonIcon = CreateMoonIcon(32, Color.FromArgb(236, 238, 248));
     private FileSystemWatcher? _configWatcher;
     private DateTimeOffset? _overrideUntil;
     private DateTimeOffset? _lastWarningStart;
@@ -46,7 +49,7 @@ internal sealed class NightLockApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Shield,
+            Icon = _moonIcon,
             Text = "NightLock Guard",
             Visible = true,
             ContextMenuStrip = BuildMenu()
@@ -86,12 +89,56 @@ internal sealed class NightLockApplicationContext : ApplicationContext
             _timer.Dispose();
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
+            _moonIcon.Dispose();
             _overlay.AllowCloseAndDispose();
             _overlay.Dispose();
         }
 
         base.Dispose(disposing);
     }
+
+    /// <summary>
+    /// Draws the crescent-moon tray icon in code with a light fill, so it stays visible on the
+    /// usually-dark taskbar. The exe and installer use the matching dark crescent (assets/moon.ico).
+    /// </summary>
+    private static Icon CreateMoonIcon(int size, Color color)
+    {
+        using var bmp = new Bitmap(size, size);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+
+            var ro = size * 0.455f;
+            var outer = new RectangleF(size * 0.50f - ro, size * 0.50f - ro, ro * 2, ro * 2);
+            var ri = size * 0.43f;
+            var inner = new RectangleF(size * 0.66f - ri, size * 0.40f - ri, ri * 2, ri * 2);
+
+            using (var brush = new SolidBrush(color))
+            {
+                g.FillEllipse(brush, outer);
+            }
+
+            // Carve the crescent by overwriting the inner disk with transparency.
+            g.CompositingMode = CompositingMode.SourceCopy;
+            using var clear = new SolidBrush(Color.Transparent);
+            g.FillEllipse(clear, inner);
+        }
+
+        var handle = bmp.GetHicon();
+        try
+        {
+            using var temp = Icon.FromHandle(handle);
+            return (Icon)temp.Clone();
+        }
+        finally
+        {
+            DestroyIcon(handle);
+        }
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr handle);
 
     private ContextMenuStrip BuildMenu()
     {

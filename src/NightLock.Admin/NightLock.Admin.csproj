@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>..\..\assets\moon.ico</ApplicationIcon>
     <!-- The admin panel writes the ACL-hardened config in ProgramData, so it must run elevated. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

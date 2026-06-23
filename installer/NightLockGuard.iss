@@ -27,6 +27,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName={#MyAppName}
+SetupIconFile=..\assets\moon.ico
+UninstallDisplayIcon={app}\NightLock.Helper.exe
 
 [Files]
 Source: "payload\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
