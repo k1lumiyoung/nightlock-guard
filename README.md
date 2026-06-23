@@ -16,6 +16,23 @@ monitor activity, log keystrokes, record the screen, or touch the Windows accoun
 The behaviour is defined up front in the specs under [`specs/`](specs/), and the C# carries
 `@spec` markers back to them.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/lock-screen.png" width="720" alt="NightLock Guard full-screen night lock"><br>
+  <em>The full-screen night lock — only the parent password gets past it.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/lock-screen-lockout.png" width="720" alt="Lock screen rate-limiting wrong attempts"><br>
+  <em>Repeated wrong passwords are rate-limited.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/settings-panel.png" width="380" alt="Hidden parent settings panel"><br>
+  <em>Hidden, password-gated settings panel (tray → Settings…).</em>
+</p>
+
 ## How it works
 
 - **Service** (`NightLock.Service`) starts with Windows, evaluates the schedule for logging, and
