@@ -27,6 +27,11 @@ if (Get-ScheduledTask -TaskName "NightLockGuardHelper" -ErrorAction SilentlyCont
     Unregister-ScheduledTask -TaskName "NightLockGuardHelper" -Confirm:$false
 }
 
+# Remove the Safe Mode registration (leave the Task Scheduler's, which is harmless to keep).
+foreach ($mode in "Minimal", "Network") {
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\$mode\NightLockGuard" /f 2>$null | Out-Null
+}
+
 Get-Process -Name "NightLock.Helper" -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process -Name "NightLock.Service" -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process -Name "NightLock.Admin" -ErrorAction SilentlyContinue | Stop-Process -Force

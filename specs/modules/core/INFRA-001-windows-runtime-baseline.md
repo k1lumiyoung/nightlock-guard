@@ -66,6 +66,7 @@ Exact numeric budgets may be added after the implementation language/runtime is 
 - During restricted hours, if the helper is missing, the service relaunches it via the logon scheduled task.
 - The service reacts to session change events (logon/unlock/reconnect) so the helper is launched promptly.
 - Service stop/uninstall is allowed only through explicit admin/uninstall flow in the first implementation.
+- The installer registers the service and the `Schedule` (Task Scheduler) service under the `SafeBoot\Minimal` and `SafeBoot\Network` keys so the service starts and the logon task launches the helper in Safe Mode too; this closes the "boot to Safe Mode to bypass" path. Recovery/uninstall trade-off recorded in `spec://TECHDEBT#TD-007`.
 
 ## Session Helper {#session-helper}
 

@@ -42,6 +42,14 @@
 - Consequence: A user who finds the executable path can still launch it; they just cannot read or change settings without the parent password.
 - Follow-up: None required for v1; the ACL + password gate is the actual protection.
 
+### TD-007: Safe Mode is enforced, which also gates Safe Mode recovery
+
+- Related: `spec://modules/core/INFRA-001-windows-runtime-baseline#service`, `spec://modules/core/PROP-001-product-boundaries#tamper-model`
+- Accepted: 2026-06-23
+- Reason: Booting into Safe Mode was an easy bypass (normal services don't run there). The installer now registers the `NightLockGuard` service and the `Schedule` (Task Scheduler) service under `HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\{Minimal,Network}`, so the service starts and the logon task launches the helper in Safe Mode as well.
+- Consequence: Because the lock also applies in Safe Mode, the usual "boot to Safe Mode to fix things" recovery path is gated by the same parent password / emergency stop combo. The lock is still a normal window (TD-002), so Ctrl+Alt+Del → Task Manager → end `NightLock.Helper` remains available, and an administrator can delete the SafeBoot keys. Enabling Task Scheduler in Safe Mode is a small, reversible system change (removed on uninstall; the `Schedule` entry is intentionally left in place as harmless).
+- Follow-up: For hardware-level robustness a BIOS/UEFI password and disabling the boot menu are still required (out of scope, documented in `README.md` Responsible use).
+
 ### TD-004: Build requires the .NET SDK on the Windows machine
 
 - Related: `spec://modules/core/INFRA-001-windows-runtime-baseline#runtime-architecture`

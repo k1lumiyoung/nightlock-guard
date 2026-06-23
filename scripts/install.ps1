@@ -118,6 +118,13 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoi
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Starts NightLock Guard helper at user logon." -Force | Out-Null
 Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 
+# Run in Safe Mode too: register the service AND the Task Scheduler (which launches the helper at
+# logon) under SafeBoot, so the night lock cannot be bypassed by booting into Safe Mode.
+foreach ($mode in 'Minimal', 'Network') {
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\$mode\$serviceName" /ve /t REG_SZ /d "Service" /f | Out-Null
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\$mode\Schedule" /ve /t REG_SZ /d "Service" /f | Out-Null
+}
+
 Write-Host ""
 Write-Host "NightLock Guard installed."
 Write-Host "Install dir: $InstallDir"

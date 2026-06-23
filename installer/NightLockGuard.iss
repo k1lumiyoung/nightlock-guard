@@ -35,7 +35,7 @@ Source: "payload\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Source: "post-install.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NoProfile -Command ""sc.exe stop NightLockGuard; sc.exe delete NightLockGuard; schtasks /delete /tn NightLockGuardHelper /f; Get-Process NightLock.Helper,NightLock.Service,NightLock.Admin -ErrorAction SilentlyContinue | Stop-Process -Force"""; Flags: runhidden; RunOnceId: "NightLockRemove"
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NoProfile -Command ""sc.exe stop NightLockGuard; sc.exe delete NightLockGuard; schtasks /delete /tn NightLockGuardHelper /f; reg delete 'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Minimal\NightLockGuard' /f; reg delete 'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\NightLockGuard' /f; Get-Process NightLock.Helper,NightLock.Service,NightLock.Admin -ErrorAction SilentlyContinue | Stop-Process -Force"""; Flags: runhidden; RunOnceId: "NightLockRemove"
 
 [Code]
 var

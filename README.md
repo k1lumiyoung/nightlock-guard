@@ -40,6 +40,11 @@ The behaviour is defined up front in the specs under [`specs/`](specs/), and the
   settings panel so you can pick one the child won't guess. It is a convenience secret, not a
   password — see `specs/TECHDEBT.md` (TD-005).
 
+- **Works in Safe Mode too** — the service and the Task Scheduler that launches the helper are
+  registered to start under Safe Mode, so the lock can't be skipped by booting into Safe Mode. (As a
+  side effect, recovering the machine via Safe Mode also needs the parent password or the stop combo
+  — see `specs/TECHDEBT.md` TD-007.)
+
 These rely on a single narrow keyboard hook that only blocks specific keys and detects the stop
 combo; it never records what you type.
 
