@@ -38,6 +38,15 @@
 - Status: In Progress
 - Summary: Same `KeyboardHook` swallows LWin/RWin while `SuppressWindowsKey` is true; the helper enables it only in the Restricted phase (no override) when the `SuppressWindowsKey` setting is on, and clears it otherwise / on stop / on exit. CLI `set-winkey --on|--off`; toggle in the admin panel. Needs Windows build/run verification.
 
+### FEAT-006: Trusted time source (@codex)
+- Started: 2026-06-25
+- Spec: `spec://modules/core/FEAT-006-trusted-time-source#root`
+- Status: Done (deployed + verified live 2026-06-26)
+- Summary: Hardening after the night lock was bypassed by setting the system clock forward and leaving it. Policy now derives `now` from a trusted clock (`anchorUtc` from SNTP + monotonic `Environment.TickCount64` offset) instead of `DateTimeOffset.Now`, so changing the system clock no longer moves the window. Added Core `SntpClient` + `TrustedClock` (anchor + monotonic model) + `IMonotonicClock`/`SystemMonotonicClock`, config fields (`useTrustedTime`, `ntpServers`, `ntpResyncMinutes`, `ntpTimeoutSeconds`), service + helper integration (sync at startup + every `ntpResyncMinutes` off the existing timer), tamper-evidence drift logging, and Core unit tests with injected monotonic/NTP (incl. a test proving a year-2099 system clock is ignored). Offline-cold-start fallback + time-zone vector recorded as TD-008/TD-009. Implemented by Codex, reviewed by Claude.
+- Verified 2026-06-25 on the user's Windows 11 PC over SSH: `dotnet build NightLockGuard.sln -c Release` = 0 warnings / 0 errors (all 6 projects); `dotnet run --project tests\NightLock.Core.Tests` = passed (incl. new trusted-time tests). Build + unit-test verification DONE.
+- Deployed + verified live 2026-06-26 on the user's Windows 11 PC over SSH: stopped the service + helper, `dotnet publish` (self-contained win-x64) of all 4 apps over `C:\Program Files\NightLockGuard` (config.json in ProgramData preserved), restarted the service. Confirmed under real attack — with the system clock set ~13h wrong (reading 10:34 daytime), the new build logged `Trusted time differs from system clock by 46806 seconds; continuing with trusted policy time` and held `Policy state: Restricted` + `Lock shown (restricted window)`. The clock-change bypass no longer works.
+- Known follow-up: helper SNTP sync runs on the WinForms UI thread and can block up to ~9s at startup when fully offline (online path unaffected); TD-008/TD-009 (offline cold-start fallback + time-zone vector) remain open.
+
 ## Completed
 
 ## Cross-module

@@ -62,6 +62,12 @@ The behaviour is defined up front in the specs under [`specs/`](specs/), and the
   side effect, recovering the machine via Safe Mode also needs the parent password or the stop combo
   — see `specs/TECHDEBT.md` TD-007.)
 
+- **Resists clock changes** — the schedule is evaluated against a trusted time taken from the
+  internet (NTP) and carried forward by a monotonic counter between syncs, so simply moving the
+  Windows clock no longer shifts the lock window. Configurable via `useTrustedTime` / `ntpServers`
+  (on by default); see [`FEAT-006`](specs/modules/core/FEAT-006-trusted-time-source.md). The
+  time-zone vector and offline cold start remain open (`specs/TECHDEBT.md` TD-008/TD-009).
+
 These rely on a single narrow keyboard hook that only blocks specific keys and detects the stop
 combo; it never records what you type.
 

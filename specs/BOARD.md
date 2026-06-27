@@ -27,3 +27,4 @@
 
 | ID | Title | Owner | Date |
 |----|-------|-------|------|
+| FEAT-006 | Trusted time source | @codex | 2026-06-26 |

@@ -18,11 +18,14 @@ namespace NightLock.Helper;
 /// @spec spec://modules/core/FEAT-002-parent-password-override#override-behavior
 /// @spec spec://modules/core/FEAT-004-emergency-stop-hotkey#stop-behavior
 /// @spec spec://modules/core/FEAT-005-windows-key-suppression#suppression-window
+/// @spec spec://modules/core/FEAT-006-trusted-time-source#trusted-clock
+/// @spec spec://modules/core/FEAT-006-trusted-time-source#synchronization
 /// @spec spec://modules/core/INFRA-001-windows-runtime-baseline#resource-budget
 /// </summary>
 internal sealed class NightLockApplicationContext : ApplicationContext
 {
     private readonly AppPaths _paths = AppPaths.Default();
+    private readonly IMonotonicClock _monotonicClock = new SystemMonotonicClock();
     private readonly ConfigStore _configStore;
     private readonly FileLogger _logger;
     private readonly NotifyIcon _notifyIcon;
@@ -32,6 +35,9 @@ internal sealed class NightLockApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _configReloadTimer = new();
     private readonly Icon _moonIcon = CreateMoonIcon(32, Color.FromArgb(236, 238, 248));
     private FileSystemWatcher? _configWatcher;
+    private TrustedClock? _trustedClock;
+    private string? _trustedClockConfigKey;
+    private long? _lastSyncAttemptMs;
     private DateTimeOffset? _overrideUntil;
     private DateTimeOffset? _lastWarningStart;
     private bool _stopped;
@@ -226,9 +232,16 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         }
 
         var settings = _configStore.LoadOrCreateDefault();
-        var now = DateTimeOffset.Now;
+        SyncTrustedClockIfDue(settings, force: false);
+
+        // @spec spec://modules/core/FEAT-006-trusted-time-source#trusted-clock
+        var now = GetPolicyNow(settings);
         var overrideUntil = ActiveOverride(now);
         var state = NightLockPolicy.Evaluate(now, settings, overrideUntil);
+        if (settings.UseTrustedTime)
+        {
+            LogTrustedClockDriftIfNeeded();
+        }
 
         // Pick up a hotkey change made in the admin panel on the next reload.
         _keyboardHook.SetCombo(settings.StopHotkey);
@@ -259,7 +272,9 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         _keyboardHook.SuppressWindowsKey =
             state.Phase == LockPhase.Restricted && settings.SuppressWindowsKey;
 
-        ScheduleNext(NightLockPolicy.NextWakeAt(now, settings, overrideUntil));
+        ScheduleNext(Min(
+            NightLockPolicy.NextWakeAt(now, settings, overrideUntil),
+            NextTrustedClockMaintenanceWake(now, settings)), now);
     }
 
     /// <summary>
@@ -352,7 +367,7 @@ internal sealed class NightLockApplicationContext : ApplicationContext
     private void OnOverlayUnlocked()
     {
         var settings = _configStore.LoadOrCreateDefault();
-        _overrideUntil = DateTimeOffset.Now.Add(settings.OverrideDuration);
+        _overrideUntil = GetPolicyNow(settings).Add(settings.OverrideDuration);
         _logger.Info($"Parent override active until {_overrideUntil:O}.");
         HideOverlay();
         EvaluateAndSchedule();
@@ -368,7 +383,8 @@ internal sealed class NightLockApplicationContext : ApplicationContext
     private void ShowStatus()
     {
         var settings = _configStore.LoadOrCreateDefault();
-        var now = DateTimeOffset.Now;
+        SyncTrustedClockIfDue(settings, force: false);
+        var now = GetPolicyNow(settings);
         var state = NightLockPolicy.Evaluate(now, settings, ActiveOverride(now));
         MessageBox.Show(state.Message, "NightLock Guard", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
@@ -452,9 +468,9 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         }
     }
 
-    private void ScheduleNext(DateTimeOffset nextWakeAt)
+    private void ScheduleNext(DateTimeOffset nextWakeAt, DateTimeOffset now)
     {
-        var delay = nextWakeAt - DateTimeOffset.Now;
+        var delay = nextWakeAt - now;
         if (delay < TimeSpan.FromSeconds(1))
         {
             delay = TimeSpan.FromSeconds(1);
@@ -468,4 +484,103 @@ internal sealed class NightLockApplicationContext : ApplicationContext
         _timer.Interval = (int)Math.Clamp(delay.TotalMilliseconds, 1_000, int.MaxValue);
         _timer.Start();
     }
+
+    private DateTimeOffset GetPolicyNow(NightLockSettings settings)
+    {
+        if (!settings.UseTrustedTime)
+        {
+            return DateTimeOffset.Now;
+        }
+
+        EnsureTrustedClock(settings);
+        return _trustedClock?.Now ?? DateTimeOffset.Now;
+    }
+
+    private void SyncTrustedClockIfDue(NightLockSettings settings, bool force)
+    {
+        if (!settings.UseTrustedTime)
+        {
+            return;
+        }
+
+        var clock = EnsureTrustedClock(settings);
+        var nowMs = _monotonicClock.ElapsedMilliseconds;
+        var retryInterval = clock.IsTrusted ? settings.NtpResyncInterval : TimeSpan.FromMinutes(1);
+        if (!force && _lastSyncAttemptMs is not null && TimeSpan.FromMilliseconds(nowMs - _lastSyncAttemptMs.Value) < retryInterval)
+        {
+            return;
+        }
+
+        _lastSyncAttemptMs = nowMs;
+        clock.TrySync();
+    }
+
+    private TrustedClock EnsureTrustedClock(NightLockSettings settings)
+    {
+        var key = TrustedClockConfigKey(settings);
+        if (_trustedClock is not null && string.Equals(_trustedClockConfigKey, key, StringComparison.Ordinal))
+        {
+            return _trustedClock;
+        }
+
+        _trustedClockConfigKey = key;
+        _lastSyncAttemptMs = null;
+        _trustedClock = new TrustedClock(
+            _monotonicClock,
+            () => QueryConfiguredNtpServers(settings),
+            systemNow: () => DateTimeOffset.Now,
+            driftLogThreshold: TimeSpan.FromMinutes(2));
+        SyncTrustedClockIfDue(settings, force: true);
+        return _trustedClock;
+    }
+
+    private DateTimeOffset NextTrustedClockMaintenanceWake(DateTimeOffset now, NightLockSettings settings)
+    {
+        if (!settings.UseTrustedTime)
+        {
+            return DateTimeOffset.MaxValue;
+        }
+
+        EnsureTrustedClock(settings);
+        if (_lastSyncAttemptMs is null)
+        {
+            return now;
+        }
+
+        var interval = _trustedClock?.IsTrusted == true ? settings.NtpResyncInterval : TimeSpan.FromMinutes(1);
+        var elapsed = TimeSpan.FromMilliseconds(_monotonicClock.ElapsedMilliseconds - _lastSyncAttemptMs.Value);
+        var remaining = interval - elapsed;
+        return remaining <= TimeSpan.Zero ? now.AddSeconds(1) : now.Add(remaining);
+    }
+
+    private void LogTrustedClockDriftIfNeeded()
+    {
+        if (_trustedClock is not null && _trustedClock.TryConsumeDriftWarning(out var drift))
+        {
+            _logger.Warn($"Trusted time differs from system clock by {Abs(drift).TotalSeconds:F0} seconds; continuing with trusted policy time.");
+        }
+    }
+
+    private static DateTimeOffset? QueryConfiguredNtpServers(NightLockSettings settings)
+    {
+        foreach (var server in settings.NormalizedNtpServers)
+        {
+            var timestamp = SntpClient.Query(server, settings.NtpTimeout);
+            if (timestamp is not null)
+            {
+                return timestamp;
+            }
+        }
+
+        return null;
+    }
+
+    private static string TrustedClockConfigKey(NightLockSettings settings)
+    {
+        return $"{settings.NtpTimeout.TotalSeconds}|{string.Join("|", settings.NormalizedNtpServers)}";
+    }
+
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) => left <= right ? left : right;
+
+    private static TimeSpan Abs(TimeSpan value) => value < TimeSpan.Zero ? value.Negate() : value;
 }

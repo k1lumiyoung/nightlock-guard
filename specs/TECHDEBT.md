@@ -57,3 +57,19 @@
 - Reason: No prebuilt binaries are shipped; the installer compiles from source. It auto-installs the .NET 8 SDK via winget when missing and publishes self-contained so the runtime is not separately required afterward.
 - Consequence: First install needs internet access (for winget/SDK) and a one-time SDK install (~hundreds of MB).
 - Follow-up: A CI pipeline could publish ready-to-run self-contained binaries to skip the SDK requirement entirely.
+
+### TD-008: Cold offline start before first NTP sync falls back to system time
+
+- Related: `spec://modules/core/FEAT-006-trusted-time-source#fallback`
+- Accepted: 2026-06-25
+- Reason: The trusted clock anchors on an NTP response. If the machine boots with no internet and the system clock was pre-tampered, there is no anchor yet and no monotonic history across the reboot, so policy temporarily uses system local time until the first successful sync.
+- Consequence: A user who sets the clock wrong *and* keeps the machine offline can avoid the night window only until connectivity returns; the first successful NTP sync corrects it.
+- Follow-up: Persist the last known good trusted time to disk as a backward-only ratchet (catches rollback offline); forward jumps still need an external time source.
+
+### TD-009: Trusted time still trusts the Windows time zone
+
+- Related: `spec://modules/core/FEAT-006-trusted-time-source#open-questions`
+- Accepted: 2026-06-25
+- Reason: `FEAT-006` removes trust in the system *clock* but the night window is defined in local time, so trusted UTC is mapped to local wall time through the Windows time-zone setting.
+- Consequence: An administrator who changes the time zone (rather than the clock) can still shift the apparent local time and move the window.
+- Follow-up: Pin the schedule's UTC offset in config, or detect/reject unexpected time-zone changes, if this vector is used in practice.
